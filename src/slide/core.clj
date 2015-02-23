@@ -7,6 +7,7 @@
              :bounds {:top 0 :left 0 :bottom 10 :right 12}})
 
 (def state (atom level1))
+(def direction (atom nil))
 
 (def canvas {:width 300
              :height 500})
@@ -19,6 +20,12 @@
                 :right [0 1]
                 :up [-1 0]
                 :down [1 0]})
+
+(def key-to-direction
+  {:left :left
+   :right :right
+   :up :up
+   :down :down})
 
 (defn move [dir p] (mapv + p (named-dir dir)))
 
@@ -70,6 +77,9 @@
               :else
               (recur ps pset (assoc-in ret [:boxes p :transition] [:move]))))))))
 
+(defn done-transitioning? [s]
+  (every? (fn [[p b]] (some #{:stay} (:transition b))) (:boxes s)))
+
 (defn apply-box-transition [dir box]
   (let [[p b] box
         nb (dissoc b :transition)
@@ -83,12 +93,12 @@
   (let [[p g] goal
         ng (dissoc g :transition)
         t (:transition g)]
-    (when-not (some #{:disappear} t) ng)))
+    (when-not (some #{:disappear} t) [p ng])))
 
 (defn apply-transitions [dir s]
-  (->
-   (update-in [:boxes] #(into {} (map (partial apply-box-transition dir) %)))
-   (update-in [:goals] #(into {} (map apply-goal-transition %)))))
+  (-> s
+      (update-in [:boxes] #(into {} (map (partial apply-box-transition dir) %)))
+      (update-in [:goals] #(into {} (map apply-goal-transition %)))))
 
 (defn square-width [width bounds]
   (/ width (- (:right bounds) (:left bounds))))
@@ -102,9 +112,14 @@
 (defn col-pos [width bounds c]
   (* c (square-width width bounds)))
 
+(defn key-pressed []
+  (when-let [dir (key-to-direction (q/key-as-keyword))]
+    (compare-and-set! direction nil dir)))
+
 (defn setup []
   (q/smooth)
-  (q/frame-rate 1)
+  (q/frame-rate 10)
+  (q/no-stroke)
   (q/background 0))
 
 (defn draw-rect [bounds p]
@@ -124,7 +139,18 @@
     (q/triangle cp rp cp (+ rp height) (+ cp width) (+ rp (/ height 2)))))
 
 (defn draw []
-  (q/stroke-weight 0)
+  (when-let [dir @direction]
+    (let [s @state
+          ts (get-transitions dir s)
+          d (done-transitioning? ts)
+          ns (apply-transitions dir ts)]
+      (when (and (compare-and-set! state s ns) d) (reset! direction nil))
+      )
+    )
+
+  ;; TODO: proper way to clear the canvas?
+  (q/fill 0)
+  (q/rect 0 0 (:width canvas) (:height canvas))
 
   ;; Draw walls
   (q/fill 150)
@@ -147,4 +173,5 @@
   :title "Ice maze"
   :setup setup
   :draw draw
-  :size [(:width canvas) (:height canvas)])
+  :size [(:width canvas) (:height canvas)]
+  :key-pressed key-pressed)
