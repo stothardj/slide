@@ -6,8 +6,11 @@
              :goals {[0 3] {:color :red}}
              :bounds {:top 0 :left 0 :bottom 10 :right 12}})
 
+(def draws-per-tick 6)
+
 (def state (atom level1))
 (def direction (atom nil))
+(def draw-num (atom 0))
 
 (def canvas {:width 300
              :height 500})
@@ -28,6 +31,16 @@
    :down :down})
 
 (defn move [dir p] (mapv + p (named-dir dir)))
+
+(defn move-adjust [dir box dn]
+  (if dir
+    (let [[p b] box
+          adj-amt (/ dn draws-per-tick)
+          adj-vec (map (partial * adj-amt) (named-dir dir))]
+      (if (some #{:move} (:transition b))
+        (map + p adj-vec)
+        p))
+    (first box)))
 
 (defn in-bounds? [bounds p]
   (let [[r c] p
@@ -114,11 +127,12 @@
 
 (defn key-pressed []
   (when-let [dir (key-to-direction (q/key-as-keyword))]
-    (compare-and-set! direction nil dir)))
+    (if (compare-and-set! direction nil dir)
+      (swap! state (partial get-transitions dir)))))
 
 (defn setup []
   (q/smooth)
-  (q/frame-rate 10)
+  (q/frame-rate 60)
   (q/no-stroke)
   (q/background 0))
 
@@ -140,13 +154,13 @@
 
 (defn draw []
   (when-let [dir @direction]
-    (let [s @state
-          ts (get-transitions dir s)
-          d (done-transitioning? ts)
-          ns (apply-transitions dir ts)]
-      (when (and (compare-and-set! state s ns) d) (reset! direction nil))
-      )
-    )
+    (swap! draw-num #(mod (inc %) draws-per-tick))
+    (when (zero? @draw-num)
+      (let [ss @state
+            d (done-transitioning? ss)
+            ns (apply-transitions dir ss)
+            ts (if d ns (get-transitions dir ns))]
+        (when (and (compare-and-set! state ss ts) d) (reset! direction nil)))))
 
   ;; TODO: proper way to clear the canvas?
   (q/fill 0)
@@ -159,7 +173,8 @@
 
   ;; Draw boxes
   (doseq [box (:boxes @state)]
-    (let [[p b] box]
+    (let [[_ b] box
+          p (move-adjust @direction box @draw-num)]
       (apply q/fill (named-color (:color b)))
       (draw-rect (:bounds @state) p)))
 
