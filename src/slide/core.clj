@@ -4,9 +4,9 @@
 (def level1 {:boxes {[2 3] {:color :red} [3 3] {:color :blue} [2 6] {:color :green}}
              :walls #{[2 1] [7 3]}
              :goals {[0 3] {:color :red}}
-             :bounds {:top 0 :left 0 :bottom 10 :right 12}})
+             :bounds {:top 0 :left 0 :bottom 20 :right 12}})
 
-(def draws-per-tick 6)
+(def draws-per-tick 3)
 
 (def state (atom level1))
 (def direction (atom nil))
@@ -24,23 +24,19 @@
                 :up [-1 0]
                 :down [1 0]})
 
+(def xy-dir {:left [-1 0]
+             :right [1 0]
+             :up [0 -1]
+             :down [0 1]})
+
 (def key-to-direction
   {:left :left
    :right :right
    :up :up
    :down :down})
 
-(defn move [dir p] (mapv + p (named-dir dir)))
 
-(defn move-adjust [dir box dn]
-  (if dir
-    (let [[p b] box
-          adj-amt (/ dn draws-per-tick)
-          adj-vec (map (partial * adj-amt) (named-dir dir))]
-      (if (some #{:move} (:transition b))
-        (map + p adj-vec)
-        p))
-    (first box)))
+(defn move [dir p] (mapv + p (named-dir dir)))
 
 (defn in-bounds? [bounds p]
   (let [[r c] p
@@ -152,6 +148,15 @@
         height (square-height (:height canvas) bounds)]
     (q/triangle cp rp cp (+ rp height) (+ cp width) (+ rp (/ height 2)))))
 
+(defn draw-boxes [boxes]
+  (doseq [box boxes]
+    (let [[p b] box]
+      (apply q/fill (named-color (:color b)))
+      (draw-rect (:bounds @state) p))))
+
+(defn moving-box? [box]
+  (let [[p b] box] (some #{:move} (:transition b))))
+
 (defn draw []
   (when-let [dir @direction]
     (swap! draw-num #(mod (inc %) draws-per-tick))
@@ -172,11 +177,18 @@
     (draw-rect (:bounds @state) w))
 
   ;; Draw boxes
-  (doseq [box (:boxes @state)]
-    (let [[_ b] box
-          p (move-adjust @direction box @draw-num)]
-      (apply q/fill (named-color (:color b)))
-      (draw-rect (:bounds @state) p)))
+  (if-let [dir @direction]
+    (do
+      (q/push-matrix)
+      (let [adj-amt (/ @draw-num draws-per-tick)
+            adj-vec (map (partial * adj-amt) (xy-dir dir))
+            bounds (:bounds @state)
+            v (map * adj-vec [(square-width (:width canvas) bounds) (square-height (:height canvas) bounds)])]
+        (q/translate v))
+      (draw-boxes (filter moving-box? (:boxes @state)))
+      (q/pop-matrix)
+      (draw-boxes (remove moving-box? (:boxes @state))))
+    (draw-boxes (:boxes @state)))
 
   ;; Draw goals
   (doseq [goal (:goals @state)]
