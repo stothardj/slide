@@ -4,9 +4,9 @@
 (def level1 {:boxes {[2 3] {:color :red} [3 3] {:color :blue} [2 6] {:color :green}}
              :walls #{[2 1] [7 3]}
              :goals {[0 3] {:color :red}}
-             :bounds {:top 0 :left 0 :bottom 20 :right 12}})
+             :bounds {:nrows 20 :ncols 12}})
 
-(def draws-per-tick 3)
+(def draws-per-tick 2)
 
 (def state (atom level1))
 (def direction (atom nil))
@@ -40,11 +40,11 @@
 
 (defn in-bounds? [bounds p]
   (let [[r c] p
-        {:keys [top left bottom right]} bounds]
-    (and (>= r top)
-         (< r bottom)
-         (>= c left)
-         (< c right))))
+        {:keys [nrows ncols]} bounds]
+    (and (>= r 0)
+         (< r nrows)
+         (>= c 0)
+         (< c ncols))))
 
 (defn get-transitions [dir s]
   (let [{:keys [boxes walls goals bounds]} s]
@@ -110,10 +110,10 @@
       (update-in [:goals] #(into {} (map apply-goal-transition %)))))
 
 (defn square-width [width bounds]
-  (/ width (- (:right bounds) (:left bounds))))
+  (/ width (:ncols bounds)))
 
 (defn square-height [height bounds]
-  (/ height (- (:bottom bounds) (:top bounds))))
+  (/ height (:nrows bounds)))
 
 (defn row-pos [height bounds r]
   (* r (square-height height bounds)))
