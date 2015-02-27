@@ -1,43 +1,17 @@
 (ns slide.core
   (:require [quil.core :as q]
-            [clojure.set :as s]
             [slide.move :as m]
-            [slide.draw :as d]))
-
-(def level1 {:boxes {[2 3] {:color :red} [3 3] {:color :blue} [2 6] {:color :green}}
-             :walls #{[2 1] [7 3]}
-             :goals {[0 3] {:color :red}}
-             :bounds {:nrows 20 :ncols 12}})
+            [slide.draw :as d]
+            [slide.levelgen :as lvl]))
 
 (def xy-dir {:left [-1 0]
              :right [1 0]
              :up [0 -1]
              :down [0 1]})
 
-(defn gen-pos [nrows ncols]
-  [(rand-int nrows) (rand-int ncols)])
-
-(defn gen-n-pos [n nrows ncols]
-  (loop [r #{}]
-    (if (= (count r) n) r
-      (recur (conj r (gen-pos nrows ncols))))))
-
-(defn gen-maze [nboxes nrows ncols]
-  (let [ps (gen-n-pos nboxes nrows ncols)
-        cs (take nboxes (repeatedly #(rand-nth (keys d/named-color))))
-        bs (map (partial assoc {} :color) cs)
-        boxes (apply assoc {} (interleave ps bs))
-        ws (s/difference (gen-n-pos (int (* 0.1 (* nrows ncols))) nrows ncols) ps)]
-    {:boxes boxes
-     :walls ws
-     :goals {}
-     :bounds {:nrows nrows :ncols ncols}}
-    ))
-
 (def draws-per-tick 2)
 
-(def state (atom (gen-maze 4 20 12)))
-;; (def state (atom level1))
+(def state (atom (lvl/gen-level 4 20 12)))
 (def direction (atom nil))
 (def draw-num (atom 0))
 
