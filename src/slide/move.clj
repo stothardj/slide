@@ -28,13 +28,6 @@
                 np (move dir p)
                 nboxes (:boxes ret)]
             (cond
-              ;; Goal of the correct color has been reached
-              (= (:color b) (:color (goals np)))
-              (recur ps pset
-                     (-> ret
-                         (assoc-in [:goals np :transition] [:disappear])
-                         (assoc-in [:boxes p :transition] [:move :disappear])))
-
               ;; Hitting a wall
               (contains? walls np)
               (recur ps pset (assoc-in ret [:boxes p :transition] [:stay]))
@@ -50,6 +43,13 @@
               ;; Hitting a box which we have determined is going to stay
               (some #{:stay} (:transition (nboxes np)))
               (recur ps pset (assoc-in ret [:boxes p :transition] [:stay]))
+
+              ;; Goal of the correct color has been reached
+              (= (:color b) (:color (goals np)))
+              (recur ps pset
+                     (-> ret
+                         (assoc-in [:goals np :transition] [:disappear])
+                         (assoc-in [:boxes p :transition] [:move :disappear])))
 
               ;; Not hitting anything
               :else

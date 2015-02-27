@@ -22,7 +22,11 @@
   {:left :left
    :right :right
    :up :up
-   :down :down})
+   :down :down
+   :a :left
+   :d :right
+   :w :up
+   :s :down})
 
 (defn key-pressed []
   (when-let [dir (key-to-direction (q/key-as-keyword))]
@@ -38,6 +42,9 @@
 (defn moving-box? [box]
   (let [[p b] box] (some #{:move} (:transition b))))
 
+(defn game-over? [s]
+  (empty? (:goals s)))
+
 (defn draw []
   (when-let [dir @direction]
     (swap! draw-num #(mod (inc %) draws-per-tick))
@@ -46,7 +53,10 @@
             d (m/done-transitioning? ss)
             ns (m/apply-transitions dir ss)
             ts (if d ns (m/get-transitions dir ns))]
-        (when (and (compare-and-set! state ss ts) d) (reset! direction nil)))))
+        (when (and (compare-and-set! state ss ts) d) (reset! direction nil)))
+      (when (game-over? @state)
+        (reset! state (lvl/gen-level 4 20 12))
+        (reset! direction nil))))
 
   ;; TODO: proper way to clear the canvas?
   (q/fill 0)
