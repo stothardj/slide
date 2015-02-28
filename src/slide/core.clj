@@ -4,7 +4,7 @@
             [slide.draw :as d]
             [slide.levelgen :as lvl]))
 
-(def state (atom (lvl/gen-level 4 20 12)))
+(def state (atom nil))
 (def direction (atom nil))
 (def draw-num (atom 0))
 
@@ -26,8 +26,14 @@
     (if (compare-and-set! direction nil dir)
       (swap! state (partial m/get-transitions dir)))))
 
+(defn start-level []
+  ;; (reset! state (lvl/gen-level 4 20 12))
+  (reset! state (lvl/new-level))
+  (reset! direction nil))
+
 (defn setup []
   (d/load-images)
+  (start-level)
   (q/smooth)
   (q/frame-rate 60)
   (q/no-stroke)
@@ -45,9 +51,7 @@
             ns (m/apply-transitions dir ss)
             ts (if d ns (m/get-transitions dir ns))]
         (when (and (compare-and-set! state ss ts) d) (reset! direction nil)))
-      (when (game-over? @state)
-        (reset! state (lvl/gen-level 4 20 12))
-        (reset! direction nil))))
+      (when (game-over? @state) (start-level))))
 
   (d/draw-game @state @direction @draw-num))
 

@@ -3,6 +3,19 @@
             [slide.draw :as d]
             [slide.move :as m]))
 
+;; Parameters to gen-level.
+;; Numbers of rows and cols should be adjusted to avoid distoring on different screen sizes.
+;; nboxes, nrows, ncols
+(def setups (concat
+             [[1 10 6]
+              [2 10 6]
+              [2 15 9]
+              [3 15 9]
+              [3 20 12]]
+             (repeat [4 20 12])))
+
+(def difficulty (atom setups))
+
 (def wall-density 0.2)
 
 (defn gen-pos [nrows ncols]
@@ -48,3 +61,9 @@
         ;; TODO: Goals do not need to be at the end of the movement or require same number of moves
         goals (simulate-movement (rand-path 30) start)]
     (assoc start :goals goals)))
+
+(defn new-level []
+  (let [lvl (apply gen-level (first @difficulty))]
+    (swap! difficulty rest)
+    lvl))
+
