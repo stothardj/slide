@@ -1,9 +1,23 @@
 (ns slide.draw
   (:require [quil.core :as q]))
 
+(def images (atom nil))
+
+(defn load-images []
+  (reset! images {:boxes {:red (q/load-image "penguin-red.png")
+                          :blue (q/load-image "penguin-blue.png")
+                          :green (q/load-image  "penguin-green.png")}}))
+
+(def draws-per-tick 2)
+
 (def named-color {:red [255 0 0]
                   :green [0 255 0]
                   :blue [0 0 255]})
+
+(def xy-dir {:left [-1 0]
+             :right [1 0]
+             :up [0 -1]
+             :down [0 1]})
 
 (defn square-width [bounds]
   (/ (q/width) (:ncols bounds)))
@@ -33,9 +47,52 @@
         height (square-height bounds)]
     (q/triangle cp rp cp (+ rp height) (+ cp width) (+ rp (/ height 2)))))
 
-(defn draw-boxes [boxes bounds]
-  (doseq [box boxes]
-    (let [[p b] box]
-      (apply q/fill (named-color (:color b)))
-      (draw-rect bounds p))))
+(defn update-vals [m f] (into {} (for [[k v] m] [k (f v)])))
 
+(defn draw-boxes [boxes bounds]
+  (let [box-imgs (:boxes @images)
+        sw (square-width bounds)
+        sh (square-height bounds)]
+    (update-vals box-imgs #(q/resize % sw sh))
+    (doseq [box boxes]
+      (let [[p b] box
+            [r c] p]
+        (q/image (box-imgs (:color b)) (col-pos bounds c) (row-pos bounds r))))))
+
+(defn draw-background []
+  (q/fill 80 80 80)
+  (q/rect 0 0 (q/width) (q/height)))
+
+(defn draw-walls [s]
+  (q/fill 150)
+  (doseq [w (:walls s)]
+    (draw-rect (:bounds s) w)))
+
+(defn moving-box? [box]
+  (let [[p b] box] (some #{:move} (:transition b))))
+
+(defn draw-all-boxes [s dir dn]
+  (if dir
+    (do
+      (q/push-matrix)
+      (let [adj-amt (/ dn draws-per-tick)
+            adj-vec (map (partial * adj-amt) (xy-dir dir))
+            bounds (:bounds s)
+            v (map * adj-vec [(square-width bounds) (square-height bounds)])]
+        (q/translate v))
+      (draw-boxes (filter moving-box? (:boxes s)) (:bounds s))
+      (q/pop-matrix)
+      (draw-boxes (remove moving-box? (:boxes s)) (:bounds s)))
+    (draw-boxes (:boxes s) (:bounds s))))
+
+(defn draw-goals [s]
+  (doseq [goal (:goals s)]
+    (let [[p g] goal]
+      (apply q/fill (named-color (:color g)))
+      (draw-goal (:bounds s) p))))
+
+(defn draw-game [s dir dn]
+  (draw-background)
+  (draw-walls s)
+  (draw-all-boxes s dir dn)
+  (draw-goals s))
