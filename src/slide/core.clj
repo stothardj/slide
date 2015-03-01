@@ -27,7 +27,6 @@
       (swap! state (partial m/get-transitions dir)))))
 
 (defn start-level []
-  ;; (reset! state (lvl/gen-level 4 20 12))
   (reset! state (lvl/new-level))
   (reset! direction nil))
 

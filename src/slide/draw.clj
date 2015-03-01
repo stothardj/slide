@@ -6,9 +6,12 @@
 (defn load-images []
   (reset! images {:boxes {:red (q/load-image "penguin-red.png")
                           :blue (q/load-image "penguin-blue.png")
-                          :green (q/load-image  "penguin-green.png")}}))
+                          :green (q/load-image  "penguin-green.png")}
+                  :goals {:red (q/load-image "fish-red.png")
+                          :blue (q/load-image "fish-blue.png")
+                          :green (q/load-image "fish-green.png")}}))
 
-(def draws-per-tick 2)
+(def draws-per-tick 3)
 
 (def named-color {:red [255 0 0]
                   :green [0 255 0]
@@ -86,10 +89,15 @@
     (draw-boxes (:boxes s) (:bounds s))))
 
 (defn draw-goals [s]
-  (doseq [goal (:goals s)]
-    (let [[p g] goal]
-      (apply q/fill (named-color (:color g)))
-      (draw-goal (:bounds s) p))))
+  (let [goal-imgs (:goals @images)
+        bounds (:bounds s)
+        sw (square-width bounds)
+        sh (square-height bounds)]
+    (update-vals goal-imgs #(q/resize % sw sh))
+    (doseq [goal (:goals s)]
+      (let [[p g] goal
+            [r c] p]
+        (q/image (goal-imgs (:color g)) (col-pos bounds c) (row-pos bounds r))))))
 
 (defn draw-game [s dir dn]
   (draw-background)
