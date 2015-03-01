@@ -42,14 +42,6 @@
         height (square-height bounds)]
     (q/rect cp rp width height)))
 
-(defn draw-goal [bounds p]
-  (let [[r c] p
-        rp (row-pos bounds r)
-        cp (col-pos bounds c)
-        width (square-width bounds)
-        height (square-height bounds)]
-    (q/triangle cp rp cp (+ rp height) (+ cp width) (+ rp (/ height 2)))))
-
 (defn update-vals [m f] (into {} (for [[k v] m] [k (f v)])))
 
 (defn draw-boxes [boxes bounds]
