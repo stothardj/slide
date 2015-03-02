@@ -27,12 +27,18 @@
   {:u :undo
    :r :restart})
 
+(defn set-direction [dir]
+  (if (compare-and-set! direction nil dir)
+    (swap! state (partial m/get-transitions dir))))
+
+(defn enqueue-event [ev]
+  (swap! event-queue #(conj % ev)))
+
 (defn key-pressed []
   (when-let [dir (key-to-direction (q/key-as-keyword))]
-    (if (compare-and-set! direction nil dir)
-      (swap! state (partial m/get-transitions dir))))
+    (set-direction dir))
   (when-let [ev (key-to-event (q/key-as-keyword))]
-    (swap! event-queue #(conj % ev))))
+    (enqueue-event ev)))
 
 (defn push-history [s]
   (swap! state-history #(conj % s)))
