@@ -9,7 +9,8 @@
                           :green (q/load-image  "penguin-green.png")}
                   :goals {:red (q/load-image "fish-red.png")
                           :blue (q/load-image "fish-blue.png")
-                          :green (q/load-image "fish-green.png")}}))
+                          :green (q/load-image "fish-green.png")}
+                  :walls (q/load-image "iceblock.png")}))
 
 (def draws-per-tick 3)
 
@@ -55,13 +56,18 @@
         (q/image (box-imgs (:color b)) (col-pos bounds c) (row-pos bounds r))))))
 
 (defn draw-background []
-  (q/fill 80 80 80)
+  (q/fill 40 130 160)
   (q/rect 0 0 (q/width) (q/height)))
 
 (defn draw-walls [s]
-  (q/fill 150)
-  (doseq [w (:walls s)]
-    (draw-rect (:bounds s) w)))
+  (let [walls (:walls s)
+        bounds (:bounds s)
+        wall-img (:walls @images)
+        sw (square-width bounds)
+        sh (square-height bounds)]
+    (q/resize wall-img sw sh)
+    (doseq [[r c] walls]
+      (q/image wall-img (col-pos bounds c) (row-pos bounds r)))))
 
 (defn moving-box? [box]
   (let [[p b] box] (some #{:move} (:transition b))))
