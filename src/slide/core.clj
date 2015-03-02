@@ -5,8 +5,10 @@
             [slide.levelgen :as lvl]))
 
 (def state (atom nil))
+(def state-history (atom nil))
 (def direction (atom nil))
 (def draw-num (atom 0))
+(def event-queue (atom nil))
 
 (def canvas {:width 300
              :height 500})
@@ -21,13 +23,32 @@
    :w :up
    :s :down})
 
+(def key-to-event
+  {:u :undo
+   :r :restart})
+
 (defn key-pressed []
   (when-let [dir (key-to-direction (q/key-as-keyword))]
     (if (compare-and-set! direction nil dir)
-      (swap! state (partial m/get-transitions dir)))))
+      (swap! state (partial m/get-transitions dir))))
+  (when-let [ev (key-to-event (q/key-as-keyword))]
+    (swap! event-queue #(conj % ev))))
+
+(defn push-history [s]
+  (swap! state-history #(conj % s)))
+
+(defn pop-history []
+  (let [hist (seq @state-history)
+        nh (rest hist)
+        ns (first nh)]
+    (when ns
+      (reset! state ns)
+      (reset! state-history nh))))
 
 (defn start-level []
   (reset! state (lvl/new-level))
+  (reset! state-history nil)
+  (push-history @state)
   (reset! direction nil))
 
 (defn setup []
@@ -41,7 +62,25 @@
 (defn game-over? [s]
   (empty? (:goals s)))
 
+(defmulti handle-event identity)
+(defmethod handle-event :undo [ev]
+  (reset! direction nil)
+  (pop-history))
+(defmethod handle-event :restart [ev]
+  (reset! direction nil)
+  (let [start (last @state-history)]
+    (reset! state start)
+    (reset! state-history nil)
+    (push-history start)))
+
+(defn handle-events []
+  (when-let [evs (seq @event-queue)]
+    (doseq [ev evs]
+      (handle-event ev))
+    (reset! event-queue nil)))
+
 (defn draw []
+  (handle-events)
   (when-let [dir @direction]
     (swap! draw-num #(mod (inc %) d/draws-per-tick))
     (when (zero? @draw-num)
@@ -49,7 +88,9 @@
             d (m/done-transitioning? ss)
             ns (m/apply-transitions dir ss)
             ts (if d ns (m/get-transitions dir ns))]
-        (when (and (compare-and-set! state ss ts) d) (reset! direction nil)))
+        (when (and (compare-and-set! state ss ts) d)
+          (reset! direction nil)
+          (push-history ts)))
       (when (game-over? @state) (start-level))))
 
   (d/draw-game @state @direction @draw-num))
