@@ -25,7 +25,8 @@
 
 (def key-to-event
   {:u :undo
-   :r :restart})
+   :r :restart
+   :q :quit})
 
 (defn set-direction [dir]
   (if (compare-and-set! direction nil dir)
@@ -78,6 +79,8 @@
     (reset! state start)
     (reset! state-history nil)
     (push-history start)))
+(defmethod handle-event :quit [ev]
+  (q/exit))
 
 (defn handle-events []
   (when-let [evs (seq @event-queue)]

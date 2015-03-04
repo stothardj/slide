@@ -48,7 +48,7 @@
                   ns (trampoline move-until-blocked dir s)]
               (recur pnext ns)))))
 
-(defn gen-level [nboxes nrows ncols]
+(defn try-gen-level [nboxes nrows ncols]
   (let [ps (gen-n-pos nboxes nrows ncols)
         cs (take nboxes (repeatedly #(rand-nth (keys d/named-color))))
         bs (map (partial assoc {} :color) cs)
@@ -61,6 +61,14 @@
         ;; TODO: Goals do not need to be at the end of the movement or require same number of moves
         goals (simulate-movement (rand-path 30) start)]
     (assoc start :goals goals)))
+
+(defn undesirable-level? [s]
+  (let [{:keys [goals boxes]} s
+        same-color? (fn [[p g]] (= (:color g) (:color (boxes p))))]
+    (some same-color? goals)))
+
+(defn gen-level [nboxes nrows ncols]
+  (first (remove undesirable-level? (repeatedly #(try-gen-level nboxes nrows ncols)))))
 
 (defn new-level []
   (let [lvl (apply gen-level (first @difficulty))]
