@@ -2,7 +2,8 @@
   (:require [quil.core :as q]
             [slide.move :as m]
             [slide.draw :as d]
-            [slide.levelgen :as lvl]))
+            [slide.levelgen :as lvl]
+            [slide.game :as g]))
 
 (def state (atom nil))
 (def state-history (atom nil))
@@ -66,9 +67,6 @@
   (q/no-stroke)
   (q/background 0))
 
-(defn game-over? [s]
-  (empty? (:goals s)))
-
 (defmulti handle-event identity)
 (defmethod handle-event :undo [ev]
   (reset! direction nil)
@@ -100,7 +98,7 @@
         (when (and (compare-and-set! state ss ts) d)
           (reset! direction nil)
           (push-history ts)))
-      (when (game-over? @state) (start-level))))
+      (when (g/game-over? @state) (start-level))))
 
   (d/draw-game @state @direction @draw-num))
 

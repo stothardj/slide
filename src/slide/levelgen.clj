@@ -32,22 +32,6 @@
         inf-path-start (if (zero? (rand-int 2)) inf-path (rest inf-path))]
     (take len inf-path-start)))
 
-(defn move-until-blocked [dir s]
-  (let [ts (m/get-transitions dir s)
-        ns (m/apply-transitions dir ts)]
-    (if (m/done-transitioning? ts)
-      s
-      #(move-until-blocked dir ns))))
-
-(defn simulate-movement [path state]
-  (loop [pseq (seq path)
-         s state]
-    (if-not pseq (:boxes s)
-            (let [pnext (seq (rest pseq))
-                  dir (first pseq)
-                  ns (trampoline move-until-blocked dir s)]
-              (recur pnext ns)))))
-
 (defn try-gen-level [nboxes nrows ncols]
   (let [ps (gen-n-pos nboxes nrows ncols)
         cs (take nboxes (repeatedly #(rand-nth (keys d/named-color))))
@@ -59,7 +43,7 @@
                :goals {}
                :bounds {:nrows nrows :ncols ncols}}
         ;; TODO: Goals do not need to be at the end of the movement or require same number of moves
-        goals (simulate-movement (rand-path 30) start)]
+        goals (:boxes (m/simulate-movement (rand-path 30) start))]
     (assoc start :goals goals)))
 
 (defn undesirable-level? [s]

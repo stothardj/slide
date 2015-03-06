@@ -77,3 +77,22 @@
   (-> s
       (update-in [:boxes] #(into {} (map (partial apply-box-transition dir) %)))
       (update-in [:goals] #(into {} (map apply-goal-transition %)))))
+
+(defn- move-until-blocked- [dir s]
+  (let [ts (get-transitions dir s)
+        ns (apply-transitions dir ts)]
+    (if (done-transitioning? ts)
+      s
+      #(move-until-blocked- dir ns))))
+
+(defn move-until-blocked [dir s]
+  (trampoline move-until-blocked- dir s))
+
+(defn simulate-movement [path state]
+  (loop [pseq (seq path)
+         s state]
+    (if-not pseq s
+            (let [pnext (seq (rest pseq))
+                  dir (first pseq)
+                  ns (move-until-blocked dir s)]
+              (recur pnext ns)))))
