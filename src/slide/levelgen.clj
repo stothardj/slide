@@ -1,7 +1,8 @@
 (ns slide.levelgen
   (:require [clojure.set :as s]
             [slide.draw :as d]
-            [slide.move :as m]))
+            [slide.move :as m]
+            [slide.solve :as slv]))
 
 ;; Parameters to gen-level.
 ;; Numbers of rows and cols should be adjusted to avoid distoring on different screen sizes.
@@ -54,8 +55,21 @@
         same-color? (fn [[p g]] (= (:color g) (:color (boxes p))))]
     (some same-color? goals)))
 
+(defn gen-level- [nboxes nrows ncols]
+  (let [lvl (try-gen-level nboxes nrows ncols)
+        retry #(gen-level- nboxes nrows ncols)]
+    (cond
+      (undesirable-level? lvl)
+      retry
+
+      (slv/solve lvl)
+      lvl
+
+      :else
+      retry)))
+
 (defn gen-level [nboxes nrows ncols]
-  (first (remove undesirable-level? (repeatedly #(try-gen-level nboxes nrows ncols)))))
+  (trampoline gen-level- nboxes nrows ncols))
 
 (defn new-level []
   (let [lvl (apply gen-level (first @difficulty))]
