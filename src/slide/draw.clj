@@ -3,6 +3,11 @@
 
 (def images (atom nil))
 
+(def canvas {:width 300
+             :height 550})
+(def board {:width 300
+            :height 500})
+
 (defn load-images []
   (reset! images {:boxes {:red (q/load-image "penguin-red.png")
                           :blue (q/load-image "penguin-blue.png")
@@ -24,10 +29,10 @@
              :down [0 1]})
 
 (defn square-width [bounds]
-  (/ (q/width) (:ncols bounds)))
+  (/ (:width board) (:ncols bounds)))
 
 (defn square-height [bounds]
-  (/ (q/height) (:nrows bounds)))
+  (/ (:height board) (:nrows bounds)))
 
 (defn row-pos [bounds r]
   (* r (square-height bounds)))
@@ -57,7 +62,7 @@
 
 (defn draw-background []
   (q/fill 40 130 160)
-  (q/rect 0 0 (q/width) (q/height)))
+  (q/rect 0 0 (:width board) (:height board)))
 
 (defn draw-walls [s]
   (let [walls (:walls s)
@@ -97,8 +102,34 @@
             [r c] p]
         (q/image (goal-imgs (:color g)) (col-pos bounds c) (row-pos bounds r))))))
 
+(defn draw-button [color k tot]
+  (let [top (:height board)
+        height (- (:height canvas) (:height board))
+        width (/ (:width canvas) tot)
+        left (* k width)]
+    (apply q/fill color)
+    (q/rect left top width height)))
+
+(defn get-button-num [tot x y]
+  (let [top (:height board)
+        bottom (:height canvas)
+        width (/ (:width canvas) tot)
+        k (quot x width)]
+    (when (and (> y top) (< y bottom)) k)))
+
+(defn get-button [x y]
+  (when-let [k (get-button-num 4 x y)]
+    ([:undo :restart :giveup :quit] k)))
+
+(defn draw-buttons []
+  (draw-button [255 0 0] 0 4)
+  (draw-button [0 255 0] 1 4)
+  (draw-button [0 0 255] 2 4)
+  (draw-button [255 255 0] 3 4))
+
 (defn draw-game [s dir dn]
   (draw-background)
   (draw-walls s)
   (draw-all-boxes s dir dn)
-  (draw-goals s))
+  (draw-goals s)
+  (draw-buttons))

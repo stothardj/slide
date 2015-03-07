@@ -14,9 +14,6 @@
 (def event-queue (atom nil))
 (def solution (atom nil))
 
-(def canvas {:width 300
-             :height 500})
-
 (def key-to-direction
   {:left :left
    :right :right
@@ -48,6 +45,10 @@
   (when-let [dir (key-to-direction (q/key-as-keyword))]
     (try-set-direction dir))
   (when-let [ev (key-to-event (q/key-as-keyword))]
+    (enqueue-event ev)))
+
+(defn mouse-clicked []
+  (when-let [ev (d/get-button (q/mouse-x) (q/mouse-y))]
     (enqueue-event ev)))
 
 (defn push-history [s]
@@ -146,5 +147,6 @@
    :title "Picky Penguins"
    :setup setup
    :draw draw
-   :size [(:width canvas) (:height canvas)]
-   :key-pressed key-pressed))
+   :size [(:width d/canvas) (:height d/canvas)]
+   :key-pressed key-pressed
+   :mouse-clicked mouse-clicked))
