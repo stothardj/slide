@@ -12,7 +12,7 @@
                           :green (q/load-image "fish-green.png")}
                   :walls (q/load-image "iceblock.png")}))
 
-(def draws-per-tick 3)
+(def draws-per-tick 4)
 
 (def named-color {:red [255 0 0]
                   :green [0 255 0]

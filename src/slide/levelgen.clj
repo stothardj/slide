@@ -16,6 +16,9 @@
 
 (def difficulty (atom setups))
 
+(defn init-state []
+  (reset! difficulty setups))
+
 (def wall-density 0.2)
 
 (defn gen-pos [nrows ncols]

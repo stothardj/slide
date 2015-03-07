@@ -3,13 +3,16 @@
             [slide.move :as m]
             [slide.draw :as d]
             [slide.levelgen :as lvl]
-            [slide.game :as g]))
+            [slide.game :as g]
+            [slide.solve :as s]))
 
+(def mode (atom :play))
 (def state (atom nil))
 (def state-history (atom nil))
 (def direction (atom nil))
 (def draw-num (atom 0))
 (def event-queue (atom nil))
+(def solution (atom nil))
 
 (def canvas {:width 300
              :height 500})
@@ -27,11 +30,16 @@
 (def key-to-event
   {:u :undo
    :r :restart
+   :g :giveup
    :q :quit})
 
-(defn set-direction [dir]
+(defn try-set-direction [dir]
   (if (compare-and-set! direction nil dir)
     (swap! state (partial m/get-transitions dir))))
+
+(defn set-direction [dir]
+  (reset! direction dir)
+  (swap! state (partial m/get-transitions dir)))
 
 (defn enqueue-event [ev]
   (swap! event-queue #(conj % ev)))
@@ -54,6 +62,7 @@
       (reset! state-history nh))))
 
 (defn start-level []
+  (reset! mode :play)
   (reset! state (lvl/new-level))
   (reset! state-history nil)
   (push-history @state)
@@ -67,16 +76,24 @@
   (q/no-stroke)
   (q/background 0))
 
-(defmulti handle-event identity)
-(defmethod handle-event :undo [ev]
-  (reset! direction nil)
-  (pop-history))
-(defmethod handle-event :restart [ev]
+(defn restart-level []
   (reset! direction nil)
   (let [start (last @state-history)]
     (reset! state start)
     (reset! state-history nil)
     (push-history start)))
+
+(defmulti handle-event identity)
+(defmethod handle-event :undo [ev]
+  (reset! direction nil)
+  (pop-history))
+(defmethod handle-event :restart [ev]
+  (restart-level))
+(defmethod handle-event :giveup [ev]
+  (restart-level)
+  (reset! mode :show)
+  (reset! solution (s/solve @state))
+  (try-set-direction (first @solution)))
 (defmethod handle-event :quit [ev]
   (q/exit))
 
@@ -86,25 +103,47 @@
       (handle-event ev))
     (reset! event-queue nil)))
 
-(defn draw []
-  (handle-events)
+(defn tick []
+  (swap! draw-num #(mod (inc %) d/draws-per-tick))
+  (zero? @draw-num))
+
+(defn handle-direction []
   (when-let [dir @direction]
-    (swap! draw-num #(mod (inc %) d/draws-per-tick))
-    (when (zero? @draw-num)
+    (when (tick)
       (let [ss @state
             d (m/done-transitioning? ss)
             ns (m/apply-transitions dir ss)
             ts (if d ns (m/get-transitions dir ns))]
         (when (and (compare-and-set! state ss ts) d)
-          (reset! direction nil)
-          (push-history ts)))
-      (when (g/game-over? @state) (start-level))))
+          (when (= @mode :play)
+            (reset! direction nil)
+            (push-history ts))
+          (when (= @mode :show)
+            (swap! solution rest)
+            (set-direction (first @solution)))))
+      (when (g/game-over? @state) (start-level)))))
+
+(defn draw []
+  (when (= :play @mode)
+    (handle-events))
+  (handle-direction)
 
   (d/draw-game @state @direction @draw-num))
 
+(defn init-state []
+  (reset! mode :play)
+  (reset! state nil)
+  (reset! state-history nil)
+  (reset! direction nil)
+  (reset! draw-num 0)
+  (reset! event-queue nil)
+  (reset! solution nil)
+  (lvl/init-state))
+
 (defn -main [& args]
+  (init-state)
   (q/sketch
-   :title "Ice maze"
+   :title "Picky Penguins"
    :setup setup
    :draw draw
    :size [(:width canvas) (:height canvas)]
