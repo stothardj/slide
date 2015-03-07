@@ -46,7 +46,7 @@
 
 (defn key-pressed []
   (when-let [dir (key-to-direction (q/key-as-keyword))]
-    (set-direction dir))
+    (try-set-direction dir))
   (when-let [ev (key-to-event (q/key-as-keyword))]
     (enqueue-event ev)))
 
@@ -93,7 +93,7 @@
   (restart-level)
   (reset! mode :show)
   (reset! solution (s/solve @state))
-  (try-set-direction (first @solution)))
+  (set-direction (first @solution)))
 (defmethod handle-event :quit [ev]
   (q/exit))
 
