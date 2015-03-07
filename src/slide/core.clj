@@ -64,7 +64,9 @@
 
 (defn start-level []
   (reset! mode :play)
-  (reset! state (lvl/new-level))
+  (let [[lvl sol] (lvl/new-level)]
+    (reset! state lvl)
+    (reset! solution sol))
   (reset! state-history nil)
   (push-history @state)
   (reset! direction nil))
@@ -93,7 +95,6 @@
 (defmethod handle-event :giveup [ev]
   (restart-level)
   (reset! mode :show)
-  (reset! solution (s/solve @state))
   (set-direction (first @solution)))
 (defmethod handle-event :quit [ev]
   (q/exit))

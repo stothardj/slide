@@ -58,15 +58,9 @@
 (defn gen-level- [nboxes nrows ncols]
   (let [lvl (try-gen-level nboxes nrows ncols)
         retry #(gen-level- nboxes nrows ncols)]
-    (cond
-      (undesirable-level? lvl)
-      retry
-
-      (slv/solve lvl)
-      lvl
-
-      :else
-      retry)))
+    (if (undesirable-level? lvl) retry
+        (let [solution (slv/solve lvl)]
+          (if solution [lvl solution] retry)))))
 
 (defn gen-level [nboxes nrows ncols]
   (trampoline gen-level- nboxes nrows ncols))
