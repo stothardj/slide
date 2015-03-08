@@ -15,10 +15,7 @@
               [3 20 12]]
              (repeat [4 20 12])))
 
-(def difficulty (atom setups))
-
-(defn init-state []
-  (reset! difficulty setups))
+(def levels (atom nil))
 
 (def wall-density 0.2)
 
@@ -65,8 +62,14 @@
 (defn gen-level [nboxes nrows ncols]
   (trampoline gen-level- nboxes nrows ncols))
 
+(defn gen-all-levels [difficulty-seq]
+  (cons (apply gen-level (first difficulty-seq))
+        (lazy-seq (gen-all-levels (rest difficulty-seq)))))
+
 (defn new-level []
-  (let [lvl (apply gen-level (first @difficulty))]
-    (swap! difficulty rest)
+  (let [lvl (first @levels)]
+    (swap! levels rest)
     lvl))
 
+(defn init-state []
+  (reset! levels (seque 8 (gen-all-levels setups))))
