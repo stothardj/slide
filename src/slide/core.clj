@@ -97,7 +97,9 @@
   (reset! mode :show)
   (set-direction (first @solution)))
 (defmethod handle-event :quit [ev]
-  (q/exit))
+  (q/exit)
+  ;; Force exit so that we dont wait for levels being generated in the background
+  (System/exit 0))
 
 (defn handle-events []
   (when-let [evs (seq @event-queue)]
