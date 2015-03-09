@@ -106,15 +106,16 @@
             [r c] p]
         (q/image (goal-imgs (:color g)) (col-pos bounds c) (row-pos bounds r))))))
 
-(defn draw-button [icon k tot]
+(defn draw-button [ll icon k tot]
   (let [top (:height board)
         height (- (:height canvas) (:height board))
         width (/ (:width canvas) tot)
         left (* k width)
         img (get-in @images [:icons icon])
+        ll-count (icon ll)
         margin 20
         s (- (min width height) margin)
-        center-x (+ left (quot width 2))
+        center-x (+ left (quot width 2) -6)
         center-y (+ top (quot height 2))]
     (q/fill 100 120 160)
     (q/resize img s s)
@@ -124,6 +125,9 @@
     (q/rect left top width height)
     (q/image-mode :center)
     (q/image img center-x center-y)
+    (when ll-count
+      (q/fill 255)
+      (q/text (str "x" ll-count) (+ left 48) (+ top 30)))
     (q/pop-style)))
 
 (defn get-button-num [tot x y]
@@ -137,15 +141,15 @@
   (when-let [k (get-button-num 4 x y)]
     ([:undo :restart :giveup :quit] k)))
 
-(defn draw-buttons []
-  (draw-button :undo 0 4)
-  (draw-button :restart 1 4)
-  (draw-button :giveup 2 4)
-  (draw-button :quit 3 4))
+(defn draw-buttons [ll]
+  (draw-button ll :undo 0 4)
+  (draw-button ll :restart 1 4)
+  (draw-button ll :giveup 2 4)
+  (draw-button ll :quit 3 4))
 
-(defn draw-game [s dir dn]
+(defn draw-game [s dir dn ll]
   (draw-background)
   (draw-walls s)
   (draw-all-boxes s dir dn)
   (draw-goals s)
-  (draw-buttons))
+  (draw-buttons ll))

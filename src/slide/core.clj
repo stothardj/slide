@@ -13,6 +13,7 @@
 (def draw-num (atom 0))
 (def event-queue (atom nil))
 (def solution (atom nil))
+(def life-lines (atom {:undo 20 :restart 5 :giveup 2}))
 
 (def key-to-direction
   {:left :left
@@ -86,16 +87,28 @@
     (reset! state-history nil)
     (push-history start)))
 
+(defn has-life-line? [life-name]
+  (< 0 (@life-lines life-name)))
+
+(defn dec-life-line [life-name]
+  (swap! life-lines #(update-in % [life-name] dec)))
+
 (defmulti handle-event identity)
 (defmethod handle-event :undo [ev]
-  (reset! direction nil)
-  (pop-history))
+  (when (has-life-line? :undo)
+    (reset! direction nil)
+    (pop-history)
+    (dec-life-line :undo)))
 (defmethod handle-event :restart [ev]
-  (restart-level))
+  (when (has-life-line? :restart)
+    (restart-level)
+    (dec-life-line :restart)))
 (defmethod handle-event :giveup [ev]
-  (restart-level)
-  (reset! mode :show)
-  (set-direction (first @solution)))
+  (when (has-life-line? :giveup)
+    (restart-level)
+    (reset! mode :show)
+    (set-direction (first @solution))
+    (dec-life-line :giveup)))
 (defmethod handle-event :quit [ev]
   (q/exit)
   ;; Force exit so that we dont wait for levels being generated in the background
@@ -134,7 +147,7 @@
     (handle-events))
   (handle-direction)
 
-  (d/draw-game @state @direction @draw-num))
+  (d/draw-game @state @direction @draw-num @life-lines))
 
 (defn init-state []
   (reset! mode :play)
@@ -144,6 +157,7 @@
   (reset! draw-num 0)
   (reset! event-queue nil)
   (reset! solution nil)
+  (reset! life-lines {:undo 20 :restart 5 :giveup 2})
   (lvl/init-state))
 
 (defn -main [& args]
