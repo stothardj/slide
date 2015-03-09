@@ -99,7 +99,9 @@
 (defmethod handle-event :quit [ev]
   (q/exit)
   ;; Force exit so that we dont wait for levels being generated in the background
-  (System/exit 0))
+  ;; Note: This kills the cider nrepl, so bad for dev
+  ;; (System/exit 0)
+  )
 
 (defn handle-events []
   (when-let [evs (seq @event-queue)]

@@ -15,7 +15,11 @@
                   :goals {:red (q/load-image "fish-red.png")
                           :blue (q/load-image "fish-blue.png")
                           :green (q/load-image "fish-green.png")}
-                  :walls (q/load-image "iceblock.png")}))
+                  :walls (q/load-image "iceblock.png")
+                  :icons {:undo (q/load-image "undo.png")
+                          :restart (q/load-image "restart.png")
+                          :giveup (q/load-image "giveup.png")
+                          :quit (q/load-image "quit.png")}}))
 
 (def draws-per-tick 4)
 
@@ -102,13 +106,25 @@
             [r c] p]
         (q/image (goal-imgs (:color g)) (col-pos bounds c) (row-pos bounds r))))))
 
-(defn draw-button [color k tot]
+(defn draw-button [icon k tot]
   (let [top (:height board)
         height (- (:height canvas) (:height board))
         width (/ (:width canvas) tot)
-        left (* k width)]
-    (apply q/fill color)
-    (q/rect left top width height)))
+        left (* k width)
+        img (get-in @images [:icons icon])
+        margin 20
+        s (- (min width height) margin)
+        center-x (+ left (quot width 2))
+        center-y (+ top (quot height 2))]
+    (q/fill 100 120 160)
+    (q/resize img s s)
+    (q/push-style)
+    (q/stroke-weight 3)
+    (q/stroke 0)
+    (q/rect left top width height)
+    (q/image-mode :center)
+    (q/image img center-x center-y)
+    (q/pop-style)))
 
 (defn get-button-num [tot x y]
   (let [top (:height board)
@@ -122,10 +138,10 @@
     ([:undo :restart :giveup :quit] k)))
 
 (defn draw-buttons []
-  (draw-button [255 0 0] 0 4)
-  (draw-button [0 255 0] 1 4)
-  (draw-button [0 0 255] 2 4)
-  (draw-button [255 255 0] 3 4))
+  (draw-button :undo 0 4)
+  (draw-button :restart 1 4)
+  (draw-button :giveup 2 4)
+  (draw-button :quit 3 4))
 
 (defn draw-game [s dir dn]
   (draw-background)
