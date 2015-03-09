@@ -147,9 +147,14 @@
   (draw-button ll :giveup 2 4)
   (draw-button ll :quit 3 4))
 
-(defn draw-game [s dir dn ll]
+(defn draw-lvl-num [lvln]
+  (q/fill 0)
+  (q/text (str "Level: " lvln) 5 15))
+
+(defn draw-game [s dir dn ll lvln]
   (draw-background)
   (draw-walls s)
   (draw-all-boxes s dir dn)
   (draw-goals s)
-  (draw-buttons ll))
+  (draw-buttons ll)
+  (draw-lvl-num lvln))

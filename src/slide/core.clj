@@ -14,6 +14,7 @@
 (def event-queue (atom nil))
 (def solution (atom nil))
 (def life-lines (atom {:undo 20 :restart 5 :giveup 2}))
+(def level-num (atom 0))
 
 (def key-to-direction
   {:left :left
@@ -70,7 +71,8 @@
     (reset! solution sol))
   (reset! state-history nil)
   (push-history @state)
-  (reset! direction nil))
+  (reset! direction nil)
+  (swap! level-num inc))
 
 (defn setup []
   (d/load-images)
@@ -147,7 +149,7 @@
     (handle-events))
   (handle-direction)
 
-  (d/draw-game @state @direction @draw-num @life-lines))
+  (d/draw-game @state @direction @draw-num @life-lines @level-num))
 
 (defn init-state []
   (reset! mode :play)
@@ -158,6 +160,7 @@
   (reset! event-queue nil)
   (reset! solution nil)
   (reset! life-lines {:undo 20 :restart 5 :giveup 2})
+  (reset! level-num 0)
   (lvl/init-state))
 
 (defn -main [& args]
