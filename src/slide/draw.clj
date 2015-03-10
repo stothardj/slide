@@ -70,12 +70,13 @@
 
 (defn draw-walls [s]
   (let [walls (:walls s)
+        ws (keys walls)
         bounds (:bounds s)
         wall-img (:walls @images)
         sw (square-width bounds)
         sh (square-height bounds)]
     (q/resize wall-img sw sh)
-    (doseq [[r c] walls]
+    (doseq [[r c] ws]
       (q/image wall-img (col-pos bounds c) (row-pos bounds r)))))
 
 (defn moving-box? [box]

@@ -22,7 +22,7 @@
 (defn gen-pos [nrows ncols]
   [(rand-int nrows) (rand-int ncols)])
 
-(defn gen-n-pos [n nrows ncols]
+(defn gen-n-pos [nrows ncols n]
   (loop [r #{}]
     (if (= (count r) n) r
         (recur (conj r (gen-pos nrows ncols))))))
@@ -33,14 +33,19 @@
         inf-path-start (if (zero? (rand-int 2)) inf-path (rest inf-path))]
     (take len inf-path-start)))
 
+(defn zip-to-map [ks vs]
+  (apply assoc {} (interleave ks vs)))
+
 (defn try-gen-level [nboxes nrows ncols]
-  (let [ps (gen-n-pos nboxes nrows ncols)
+  (let [gen (partial gen-n-pos nrows ncols)
+        ps (gen nboxes)
         cs (take nboxes (repeatedly #(rand-nth (keys d/named-color))))
         bs (map (partial assoc {} :color) cs)
-        boxes (apply assoc {} (interleave ps bs))
-        ws (s/difference (gen-n-pos (int (* wall-density (* nrows ncols))) nrows ncols) ps)
+        boxes (zip-to-map ps bs)
+        ws (s/difference (gen (int (* wall-density (* nrows ncols)))) ps)
+        walls (zip-to-map ws (repeat {:type :normal}))
         start {:boxes boxes
-               :walls ws
+               :walls walls
                :goals {}
                :bounds {:nrows nrows :ncols ncols}}
         ;; TODO: Goals do not need to be at the end of the movement or require same number of moves
@@ -72,4 +77,4 @@
     lvl))
 
 (defn init-state []
-  (reset! levels (seque 8 (gen-all-levels setups))))
+  (reset! levels (seque 2 (gen-all-levels setups))))
