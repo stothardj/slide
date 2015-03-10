@@ -32,13 +32,16 @@
    :g :giveup
    :q :quit})
 
+(defn updated-with-direction [dir]
+  (swap! state (comp (partial m/get-transitions dir) m/clear-stopped)))
+
 (defn try-set-direction [dir]
   (if (compare-and-set! direction nil dir)
-    (swap! state (partial m/get-transitions dir))))
+    (updated-with-direction dir)))
 
 (defn set-direction [dir]
   (reset! direction dir)
-  (swap! state (partial m/get-transitions dir)))
+  (updated-with-direction dir))
 
 (defn enqueue-event [ev]
   (swap! event-queue #(conj % ev)))

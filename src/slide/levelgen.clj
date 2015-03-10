@@ -43,7 +43,7 @@
         bs (map (partial assoc {} :color) cs)
         boxes (zip-to-map ps bs)
         ws (s/difference (gen (int (* wall-density (* nrows ncols)))) ps)
-        walls (zip-to-map ws (repeat {:type :normal}))
+        walls (zip-to-map ws (repeat {:type :cracked}))
         start {:boxes boxes
                :walls walls
                :goals {}

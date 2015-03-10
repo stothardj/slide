@@ -15,6 +15,12 @@
          (>= c 0)
          (< c ncols))))
 
+(defn hit-wall [s np]
+  (let [wall (get-in s [:walls np])]
+    (case (:type wall)
+      :normal s
+      :cracked (assoc-in s [:walls np :transition] [:disappear]))))
+
 (defn get-transitions [dir s]
   (let [{:keys [boxes walls goals bounds]} s]
     (loop [pending (into clojure.lang.PersistentQueue/EMPTY (keys boxes))
@@ -28,9 +34,16 @@
                 np (move dir p)
                 nboxes (:boxes ret)]
             (cond
+              ;; Already been told to stop. Needed to handle stopping against
+              ;; cracked walls.
+              (:stopped b)
+              (recur ps pset (assoc-in ret [:boxes p :transition] [:stay]))
+              
               ;; Hitting a wall
               (contains? walls np)
-              (recur ps pset (assoc-in ret [:boxes p :transition] [:stay]))
+              (recur ps pset (-> ret
+                                 (assoc-in [:boxes p :transition] [:stay])
+                                 (hit-wall np)))
 
               ;; Going out of bounds
               (not (in-bounds? bounds np))
@@ -56,7 +69,7 @@
               (recur ps pset (assoc-in ret [:boxes p :transition] [:move]))))))))
 
 (defn done-transitioning? [s]
-  (every? (fn [[p b]] (some #{:stay} (:transition b))) (:boxes s)))
+  (every? (fn [[p b]] (:stopped b)) (:boxes s)))
 
 (defn- apply-box-transition [dir box]
   (let [[p b] box
@@ -65,7 +78,7 @@
     (cond
       (some #{:disappear} t) nil
       (some #{:move} t) [(move dir p) nb]
-      (some #{:stay} t) [p nb])))
+      (some #{:stay} t) [p (assoc nb :stopped true)])))
 
 (defn- apply-goal-transition [goal]
   (let [[p g] goal
@@ -73,16 +86,26 @@
         t (:transition g)]
     (when-not (some #{:disappear} t) [p ng])))
 
+(defn- apply-wall-transition [wall]
+  (let [[p w] wall
+        nw (dissoc w :transition)
+        t (:transition w)]
+    (when-not (some #{:disappear} t) [p nw])))
+
 (defn apply-transitions [dir s]
   (-> s
       (update-in [:boxes] #(into {} (map (partial apply-box-transition dir) %)))
-      (update-in [:goals] #(into {} (map apply-goal-transition %)))))
+      (update-in [:goals] #(into {} (map apply-goal-transition %)))
+      (update-in [:walls] #(into {} (map apply-wall-transition %)))))
+
+(defn clear-stopped [s]
+  (update-in s [:boxes] #(into {} (map (fn [[p b]] [p (dissoc b :stopped)]) %))))
 
 (defn- move-until-blocked- [dir s]
   (let [ts (get-transitions dir s)
         ns (apply-transitions dir ts)]
     (if (done-transitioning? ts)
-      s
+      (clear-stopped s)
       #(move-until-blocked- dir ns))))
 
 (defn move-until-blocked [dir s]
