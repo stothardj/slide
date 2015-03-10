@@ -8,16 +8,16 @@
 ;; Numbers of rows and cols should be adjusted to avoid distoring on different screen sizes.
 ;; nboxes, nrows, ncols
 (def setups (concat
-             [[1 10 6]
-              [2 10 6]
-              [2 15 9]
-              [3 15 9]
-              [3 20 12]]
-             (repeat [4 20 12])))
+             [[1 10 6 {:normal 1}]
+              [2 10 6 {:normal 1}]
+              [2 15 9 {:normal 30 :cracked 1}]
+              [3 15 9 {:normal 20 :cracked 1}]
+              [3 20 12 {:normal 15 :cracked 1}]]
+             (repeat [4 20 12 {:normal 15 :cracked 1}])))
 
 (def levels (atom nil))
 
-(def wall-density 0.2)
+(def wall-density 0.25)
 
 (defn gen-pos [nrows ncols]
   [(rand-int nrows) (rand-int ncols)])
@@ -36,14 +36,18 @@
 (defn zip-to-map [ks vs]
   (apply assoc {} (interleave ks vs)))
 
-(defn try-gen-level [nboxes nrows ncols]
+(defn choose-from-distribution [choices]
+  (let [flat (mapcat (fn [[k v]] (repeat v k)) choices)]
+    (rand-nth flat)))
+
+(defn try-gen-level [nboxes nrows ncols wall-dist]
   (let [gen (partial gen-n-pos nrows ncols)
         ps (gen nboxes)
         cs (take nboxes (repeatedly #(rand-nth (keys d/named-color))))
         bs (map (partial assoc {} :color) cs)
         boxes (zip-to-map ps bs)
         ws (s/difference (gen (int (* wall-density (* nrows ncols)))) ps)
-        walls (zip-to-map ws (repeat {:type :cracked}))
+        walls (zip-to-map ws (repeatedly #(assoc {} :type (choose-from-distribution wall-dist))))
         start {:boxes boxes
                :walls walls
                :goals {}
@@ -57,15 +61,15 @@
         same-color? (fn [[p g]] (= (:color g) (:color (boxes p))))]
     (some same-color? goals)))
 
-(defn gen-level- [nboxes nrows ncols]
-  (let [lvl (try-gen-level nboxes nrows ncols)
-        retry #(gen-level- nboxes nrows ncols)]
+(defn gen-level- [nboxes nrows ncols wall-dist]
+  (let [lvl (try-gen-level nboxes nrows ncols wall-dist)
+        retry #(gen-level- nboxes nrows ncols wall-dist)]
     (if (undesirable-level? lvl) retry
         (let [solution (slv/solve lvl)]
           (if solution [lvl solution] retry)))))
 
-(defn gen-level [nboxes nrows ncols]
-  (trampoline gen-level- nboxes nrows ncols))
+(defn gen-level [nboxes nrows ncols wall-dist]
+  (trampoline gen-level- nboxes nrows ncols wall-dist))
 
 (defn gen-all-levels [difficulty-seq]
   (cons (apply gen-level (first difficulty-seq))
